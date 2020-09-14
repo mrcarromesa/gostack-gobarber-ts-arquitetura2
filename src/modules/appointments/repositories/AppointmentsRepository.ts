@@ -1,5 +1,6 @@
 import { EntityRepository, Repository } from 'typeorm';
-import Appointment from '../models/Appointment';
+
+import Appointment from '../infra/typeorm/entities/Appointment';
 
 // O Decoration @EntityRepository passamos o model como parametro
 // O Repository<> recebe o model feito com o typeorm

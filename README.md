@@ -1,453 +1,147 @@
-# Back-end GoBarber parte 1
+# Arquitetura
 
-- Iniciando com o [TypeORM](https://typeorm.io/#/)
-- Criar o arquivo `ormconfig.json`
-- Detalhes de como configurar esse arquivo [TypeORM](https://typeorm.io/#/connection-options)
-- Instação dos drivers: [TypeORM](https://typeorm.io/#/)
+- Organizando as pastas
 
-- Instalando o typeorm e o postgre:
+- Antes de começar no caso utilizando a extensão do material icons podemos estilizar alguns icones de arquivo e pastas
 
-```bash
-yarn add typeorm pg
-```
-
-- Com isso podemos configurar o `ormconfig.json`
-
-- Agora criamos um arquivo chmado `src/database/index.ts` esse arquivo será feita a conexão com a base de dados
-
-- Poderiamos utilizar os parametros da conexão diretamente nesse arquivo porém para utilizarmos as migrations etc., o melhor é inserir os dados da conexão nesse arquivo de configuração.
-
-- Agora com essa parte da conexão configurada chamamos ela em `src/server.ts`
-
-**Lembrar de criar a base de dados**
-
-- Depois de tudo feito para testar utilizamos o comando:
-
-```bash
-yarn dev:server
-```
-
-----
-
-## Migrations
-
-- Vamos utilizar as migrations para criar o ambiente, realizar alterações e assim por diante
-- Inicialmente no arquivo `ormconfig.json` adicionamos a configuração para pasta migrations
-- Criar a pasta `src/database/migrations/`
-- No arquivo `ormconfig.json` adicionar a configuração de migrations:
+- No arquivo `settings.json` do vscode podemos adicionar as seguintes configurações:
 
 ```json
-"migrations": [
-  "./src/database/migrations/*.ts"
-]
+"material-icon-theme.folders.associations": {
+  "migrations": "Dump",
+  "infra": "app",
+  "entities": "class",
+  "typeorm": "database",
+  "repositories": "mappings",
+  "http": "container",
+  "modules": "components",
+  "implementatios": "core",
+  "dtos": "typescript",
+  "fakes": "mock"
+},
+
+"material-icon-theme.files.associations": {
+  "ormconfig.json": "database",
+  "tsconfig.json": "tune",
+},
 ```
 
-- Dessa forma todos os arquivos nessa pasta que forem .ts será uma migration
+- Em [Material Icon Theme](https://marketplace.visualstudio.com/items?itemName=PKief.material-icon-theme), tem mais informações sobre esse relacionamento
 
-- Podemos também adicionar algumas configurações de linha de comando:
+
+- Agora criamos a pasta `src/modules` e vamos separar as partes do projeto
+
+  - Quais são as areas de conhecimento diferentes?
+    - Atualmente temos o Appointments e o users
+  - Dividimos a aplicação em setores caso um setor seja removido os demais continuam a funcionar
+
+- Criamos a pasta `src/modules/users` e `src/modules/appointments`
+- Criamos a pasta `src/modules/appointments/services` e movemos todos os services de appointments
+- Criamos a pasta `src/modules/users/services` e movemos todos os services de users
+
+- Por fim removemos a pasta `src/services`
+
+- Criamos a pasta `src/modules/appointments/repositories`
+
+- Dessa forma podemos apagar a pasta `src/repositories`
+
+- Temos a pasta `database` porém essa pasta não pertence a nenhum modulo, nesse caso podemos criar a pasta `src/shared` o qual é compartilhada por todos os modulos
+
+- Passamos o as pastas database, erros, middleware, routes
+
+- Por fim criamos a pasta `src/modules/appointments/entities` e adicionamos o model correpsondente
+- Por fim criamos a pasta `src/modules/users/entities` e adicionamos o model correpsondente
+
+- Finalmente podemos apagar a pasta `src/models`
+
+---
+
+## Camada de infra e camada de dominio
+
+- A camada de dominio basicamente seria a de regra de negocio, basicamente algo que até quem não entende de programação conseguirá ler
+E essa camada não precisa saber qual base de dados esta sendo utilizado, ou qual ferramenta para envio de e-mail está sendo utilizada, isso é responsabilidade da camada de infra, então adicionamos a ela tudo que for de uma lib especifica de um pacote especifico.
+
+- Atualmente o que temos no nosso projeto de que podemos mover para camada de infra são:
+- database - alterar para typeorm: caso alterameos de typeorm para outro isso deixará de existir pois utiliza uma lib especifia, no caso do erros por exemplo eu posso alterar qualquer lib que for ele continuará o mesmo.
+
+- criamos também a pasta `src/shared/infra/http/` e inserimos tudo que tem haver com requisição do tipo http, que são:
+  - routes
+  - middleware
+  - server.ts
+
+
+- Também em `src/modules/appontments` criamos a pasta `infra/typeorm`
+- Também em `src/modules/users` criamos a pasta `infra/typeorm`
+
+- Agora em `src/modules/appointments` o que precisamos mover para o infra?
+  - No caso temos o `entities/Appointments.ts` que está totalmente relacionado com o typeorm, e se um dia o typeorm mudar isso irá para de funcionar, dessa forma podemos move-lo para `src/modules/appointments/infra/typeorm/entities/Appointments.ts`
+
+- A mesma coisa realizamos no `src/modules/users/entities/`
+
+- Também podemos adicionar as rotas em `src/modules/appointments/infra/http/routes/`
+- Também podemos adicionar as rotas em `src/modules/users/infra/http/routes/`
+
+---
+
+## Root Import com typescript
+
+- Para não precisar utilizar o `../../../../../` podemos realizar alguns ajustes em `tsconfig.json`:
 
 ```json
-"cli": {
-  "migrationsDir": "./src/database/migrations"
-}
+"baseUrl": "./",
+"paths": {
+  // ...
+},
 ```
 
-- Porém se executarmos o comando ele irá gerar o arquivo em js, para podermos criar arquivos em ts precisamos informar isso no cli, para isso no arquivo `package.json` adicionamos em `"scripts"` o seguinte:
+- Utilizamos essa configurações para criar atalhos, para os caminhos das importações ficarem menores,
+- Utilizamos esse recurso juntamente com a prop baseUrl:
+
+```json
+"baseUrl": "./src",
+"paths": {
+  "@modules/*": ["modules/*"],
+  "@config/*": ["config/*"],
+  "@shared/*": ["shared/*"],
+},
+```
+
+- Dessa forma podemos utilizar isso no nossos arquivos:
+
+
+```ts
+import User from '@modules/users/infra/typeorm/entities/User';
+```
+
+- Depois de realizar as configurações é interessante dar um reload no vscode para ele conseguir entender
+
+- E por fim podemos atualizar isso.
+
+- Finalmente precisamos ajustar o arquivo `package.json`:
 
 ```json
 "scripts": {
-  "typeorm": "ts-node-dev ./node_modules/typeorm/cli.js"
-}
+    "build": "tsc",
+    "dev:server": "ts-node-dev --inspect --transpileOnly --ignore-watch node_modules src/shared/infra/http/server.ts",
+    "start": "ts-node src/shared/infra/http/server.ts",
+    "typeorm": "ts-node-dev ./node_modules/typeorm/cli.js"
+  },
 ```
 
-- Agora para criar a migration utilizamos o comando:
+- Precisamos instalar um plugin que entende o `@` que adicionamos nos caminhos, pois o ts-node não consegue entender, dessa forma instalamos o :
 
 ```bash
-yarn typeorm migration:create -n CreateAppointaments
+yarn add tsconfig-paths -D
 ```
 
-- Será criado o arquivo em `src/database/migrations/`
 
-- Nesse arquivo contem dois metodos o `up` e `down` o up eu utilizo para realizar alguma coisa como criar tabela, criar/alterar campo
-- E no down utilizo para desfazer o que foi feito pelo up.
-
-**Uma forma segura de utilizar id unico é utilizando o uuid ao invés de registro incremental, pois o tradicional é fácil tentar descobrir o próximo, diferente do uuid**
-
-- Depois de inserir a estrutura da migration podemos executar o comando:
-
-```bash
-yarn typeorm migration:run
-```
-
-- Se for necessário desfazer a migration utilizamos o comando:
-
-```bash
-yarn typeorm migration:revert
-```
-
-- Para verificar as migrations que foram executados podemos utilizar o comando:
-
-```bash
-yarn typeorm migration:show
-```
-
----
-
-## Informar o caminho das entidades/model
-
-- Precisamos informar ao typeorm qual o caminho das entidades no arquivo `ormconfig.json`:
+- Ainda no `package.json` adicionamos aos scripts o `-r` que significa register, vamos registrar o plugin:
 
 ```json
-"entities": [
-  "./src/models/*.ts"
-],
-```
-
----
-
-## Model como Entidade - Uitlizando o Decoration do TypeORM
-
-- Primeiro no arquivo  `tsconfig.js` habilite essas opções:
-
-```json
-"experimentalDecorators": true,
-"emitDecoratorMetadata": true,
-```
-
-- Agora em `src/models/Appointments.ts` altere o conteúdo para:
-
-```ts
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
-
-@Entity('appointments')
-class Appointment {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-// Quando o valor é string não precisa informar nada
-  @Column()
-  provider: string;
-
-  @Column('timestamp with time zone')
-  date: Date;
-}
-
-export default Appointment;
-
-```
-
-- o eslint irá apontar erro de que a variavel não está sendo iniciada, para corrigir isso no arquivo `tsconfig.json` altere o seguinte:
-
-```json
-"strictPropertyInitialization": false,
-```
-
-
----
-
-## Ajustando o Repository
-
-
-- O TypeORM por padrão já possuí uma especie de repository
-
-- Ajustar o arquivo `src/repository/AppointmentRepository.ts` // Utilizamos o @EntityRepository(Appointment) para trabalhar com o repository com TypeORM
-- Ajustar o arquivo `src/services/CreateAppointmentService.ts`
-- Ajustar o arquivo `src/routes/appointments.route.ts`
-
-- Antes de executar o projeto precisamos instalar mais uma dependencia:
-
-```bash
-yarn add reflect-metadata
-```
-
-- No arquivo `src/server.ts` precisamos importar esse arquivo na primeira linha:
-
-```ts
-import 'reflect-metadata';
-```
-
-- Mais informações em [TypeORM](https://typeorm.io/#/)
-
-
-
----
-
-## Tabela de Usuários
-
-- Executar a migration:
-
-```bash
- yarn typeorm migration:create -n CreateUsers
-```
-
-- Será criado um arquivo na pasta `src/database/migrations`
-
-- Depois de definido os campos execute o comando:
-
-```bash
-yarn typeorm migration:run
-```
-
-- Será gerado a tabela na base de dados.
-
----
-
-## Model de Usuários
-
-- Crie o arquivo `src/models/User.ts`
-
-- Algo interessante nesse código é que estamos utilizando também o Decoration:
-- @Entity('NOME_DA_TABELA')
-- @PrimaryGeneratedColumn('tipo')
-- @Column('tipo')
-- @CreateDateColumn()
-- @UpdateDateColumn()
-
----
-
-## Relacionar tabelas migration
-
-- Criar outra migration para alterar o campo de provider para um campo relacional:
-
-```bash
-yarn typeorm migration:create -n AlterProviderFieldToProviderId
-```
-
-- Será criado outro arquivo dentro da pasta `src/database/migrations`, nesse arquivo iremos criar uma coluna na tabela de appointments que irá se relacionar com a tabela de usuários
-
----
-
-## Ajustes nos models para relacionamento
-
-- No model `src/models/Appointment.ts` iremos ajustar...
-
-```ts
-@ManyToMany(() => User) // Informamos que o campo abaixo faz referencia a tabela de usuários
-@JoinColumn({ name: 'provider_id' }) // Informamos qual coluna nessa tabela atual se refere o relacionamento
-provider: User;
-```
-
-
----
-
-## Criação de usuário
-
-- Crie a rota `src/routes/users.routes.ts`
-
-- No Insomnia criar a pasta User com a rota Create metodo POST
-
-- Criar um serviço: `src/services/CreateUserService.ts`
-
-- Nesse service diferente do de Appointments não iremos criar um repositorio, pois não precisamos de nenhum metodo adicional além dos padrões para buscar informações diretamente do model.
-
----
-
-- Ajustes no Appointments para receber o id do usuário ao invés do nome para o cadastro do provider
-
-- No arquivo `src/routes/appointments.routes.ts` altere no recebimento do body para receber o provider_id
-- Mesma coisa no `src/services/CreateAppointmentService.ts` ajustar
-
----
-
-## Cryptografia para Senha
-
-- Adicionar a lib:
-
-```bash
-yarn add bcryptjs
-```
-
-- e instale a declaração de tipos:
-
-```bash
-yarn add @types/bcryptjs -D
-```
-
-
-- No arquivo `src/services/CreateUserService.ts` adicione a importação do bcryptjs
-
----
-
-## Login
-
-- Criar a rota `src/routes/sessions.routes.ts`
-
-- Criar o service `src/services/AuthenticationUserService.ts`
-
-- Criar rota no Insomnia `Session/Creat` do tipo POST
-
----
-
-## JWT Toke
-
-- Inicialmente instale a lib:
-
-```bash
-yarn add jsonwebtoken
-```
-
-- Instalar a lib:
-
-```bash
-yarn add @types/jsonwebtoken -D
-```
-
-- Para debugar o jwt podemos utilizar o site [JWT](https://jwt.io)
-
-- Ajustar no arquivo `src/services/AuthenticationUserService.ts`
-
-
----
-
-## Middleware
-
-- Criar Middleware para verifcar se o usuário está logado ou não
-
-- Crie o arquivo `src/middleware/ensureAuthenticated.ts`
-
-- Criar o arquivo `src/config/auth.ts` para adicionar as configurações de autenticação
-
-- No arquivo `src/middleware/ensureAuthenticated.ts` estamos adicionando uma prop para um objeto:
-
-```ts
-request.user = {
-      id: sub,
-    };
-```
-
-- Porém no request que é do tipo Request do express não possuí essa propriedade, dessa forma precisamos adicionar/anexar isso, como?
-
-- Criamos uma pasta `src/@types/NOME_DA_LIB.d.ts`:
-  - d: definition
-  - ts typescript
-- Nesse caso iremos criar `src/@types/express.d.ts` e precisamos descobrir qual o nome do namespace do express e por fim adicionar:
-
-```ts
-declare namespace Express {
-  export interface Request {
-    user: {
-      id: string;
-    };
-  }
-}
-
-```
-
-
----
-
-## imagem de Avatar para o usuário - ajuste na Tabela
-
-- Crie uma nova migration para adicionar um novo campo na tabela:
-
-```bash
-yarn typeorm migration:create -n AddAvatarFieldToUsers
-```
-
-- Criar a rota para enviar a informação da imagem no arquivo `src/routes/users.routes.ts`
-
----
-
-## Upload de imagem
-
-- Utilize a lib:
-
-```bash
-yarn add multer
-```
-
-- Instale também a definição de tipos:
-
-```bash
-yarn add @types/multer -D
-```
-
-- Criar o arquivo `src/config/upload.ts` que irá armazenar as informações para upload de imagens
-
-- Por enquanto as imagens serão armazenadas no disco, então crie uma pasta `tmp/`
-
-- Por fim adicionamos essas informações em `src/routes/users.routes.ts`
-
----
-
-## Serviço para salvar caminho do avatar na base
-
-- Crie o serviço `src/services/UpdateUserAvatarService.ts`
-
-- Na rota `src/routes/users.routes.ts` adicionar o serviço
-
-- No model `src/models/User.ts` adicionar a coluna avatar
-
-- Criar no Insomnia a rota `Users/UpdateAvatar` do tipo PATH
-
----
-
-## Obter url da imagem salva
-
-- Para servir os arquivos de forma estática vamos criar no arquivo `src/server.ts`
-
-```ts
-app.use('/files', express.static(uploadConfig.directory));
-```
-
-
----
-
-## Lidar com exceptions
-
-- Criar a pasta `src/erros/`
-
-- Criar o arquivo `src/erros/AppError.ts`
-
-- Agora ajuste o arquivo `src/services/AuthenticateUserService.ts` e ajustar as chamadas de error, também no `src/services/CreateAppointmentService.ts`, também no `src/services/CreateUserService.ts` e no `src/services/UpdateUserAvatarService.ts`, também no `src/middleware/ensureAuthenticated.ts`
-
----
-
-## Global exception handle
-
-- Iremos capturar o erro não importar quem originou ele, todos os erros irão cair em um ponto central
-
-- Primeiro em todas as rotas removemos todos os try catch
-
-- No arquivo `src/server.ts` iremos adicionar um middleware especifico para erros ele deve ser chamado após as rotas.
-
-
-- Problemas é que erros que são gerados de forma assincrona não são capturados por padrão aqui, para resolver isso iremos utilizar o seguinte pacote:
-
-```bash
-yarn add express-async-errors
-```
-
-- E no arquivo `src/server.ts` logo depois da importação do express importamos:
-
-```ts
-import 'express-async-errors';
-```
-
-- O eslint está acusando erro de variaveis não utilizadas como no caso:
-
-```ts
-(err: Error, request: Request, response: Response, next: NextFunction) => {
-```
-
-- Para isso alteramos esse trecho para:
-
-```ts
-(err: Error, request: Request, response: Response, _: NextFunction) => {
-```
-
-- E no arquivo `.eslintrc.json` adicinamos a seguinte regra:
-
-```json
-"@typescript-eslint/no-unused-vars" : ["error",{ "argsIgnorePattern": "_"}],
-```
-
----
-
-## Permitindo acesso através de requisições ajax, cors:
-
-- instala:
-
-```bash
-yarn add cors
+"scripts": {
+    "build": "tsc",
+    "dev:server": "ts-node-dev -r tsconfig-paths/register --inspect --transpileOnly --ignore-watch node_modules src/shared/infra/http/server.ts",
+    "start": "ts-node src/shared/infra/http/server.ts",
+    "typeorm": "ts-node-dev -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
+  },
 ```
