@@ -145,3 +145,21 @@ yarn add tsconfig-paths -D
     "typeorm": "ts-node-dev -r tsconfig-paths/register ./node_modules/typeorm/cli.js"
   },
 ```
+
+
+---
+
+### Interface
+
+- Nesse projeto iremos forçar para que todas as interfaces comecem com a letra "I" no eslint podemos adicionar uma regra para forçar isso:
+
+```json
+"@typescript-eslint/interface-name-prefix": ["error", {"prefixWithI": "always"}],
+```
+
+
+---
+
+## Conceito L do SOLID
+
+- Um dos coneceitos do SOLID é o `Liskov Substition Principle`, determina que as camadas que são integração com outras libs, como banco de dados, devem ser possível substituir essas informações, definindo um conjunto de regras, ou seja defende que os services de uma regra de repositorio, o nosso service não deve conhecer o formato final da estrutura que armazena/persiste os dados. Os serviços não devem saber se os dados estão sendo persistidos pelo typeorm, pelo no-sql...
