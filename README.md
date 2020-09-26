@@ -163,3 +163,131 @@ yarn add tsconfig-paths -D
 ## Conceito L do SOLID
 
 - Um dos coneceitos do SOLID é o `Liskov Substition Principle`, determina que as camadas que são integração com outras libs, como banco de dados, devem ser possível substituir essas informações, definindo um conjunto de regras, ou seja defende que os services de uma regra de repositorio, o nosso service não deve conhecer o formato final da estrutura que armazena/persiste os dados. Os serviços não devem saber se os dados estão sendo persistidos pelo typeorm, pelo no-sql...
+
+
+### DTO (Data transfer object)
+
+- Essa é uma técnica muito utilizada que consiste criar inteface para transferir o objeto entre classes.
+- Um exemplo disso pode ser visto em `src/modules/appointments/dtos/ICreateAppointmentDTO.ts` e `src/modules/appointments/typeorm/repositories/AppointmentsRepository.ts`
+
+
+---
+
+### SOLID até o momento:
+- Já foi aplicado no projeto as seguintes práticas do SOLID:
+
+  - (X) Single Responsability Principle
+  - ( ) Open Close Principle
+  - (X) Liskov Substitution Principle
+  - ( ) Interface Segregation Principle
+  - (X) Dependency Inversion Principle
+
+
+----
+
+
+## Injeção de dependências
+
+- Utilizamos isso para não precisar inserir no constructor isso de forma manual como por exemplo:
+
+```ts
+constructor(private appointmentsRepository: IAppointmentsRepository) {}
+```
+
+- [tsyringe](https://github.com/microsoft/tsyringe)
+
+- Instalação:
+
+```bash
+yarn add tsyringe
+```
+
+- Criamos a pasta  `src/shared/container/index.ts`
+
+- No arquivo `src/modules/appointments/services/CreateAppointmentService.ts` adicionamos o seguinte:
+
+```ts
+import { injectable, inject } from 'tsyringe';
+
+// ...
+
+@injectable()
+class CreateAppointmentService {
+
+  constructor(
+    @inject('AppointmentsRepository')
+    private appointmentsRepository: IAppointmentsRepository) {}
+  // ...
+}
+```
+
+e por fim posso importar o arquivo `src/shared/container/index.ts` em `src/shared/infra/http/server.ts`:
+
+```ts
+import '@shared/container';
+```
+
+- Dessa forma ele já começará a agir.
+
+
+- Por fim em `src/modules/appointments/infra/http/routes/appointments.routes.ts` podemos alterar o seguinte:
+
+```ts
+import AppointmentsRepository from '@modules/appointments/infra/typeorm/repositories/AppointmentsRepository';
+import CreateAppointmentService from '@modules/appointments/services/CreateAppointmentService';
+
+//..
+
+appointmentsRouter.post('/', async (req, res) => {
+// ...
+  const appointmentsRepository = new AppointmentsRepository();
+  const createAppointment = new CreateAppointmentService(appointmentsRepository);
+
+// ...
+});
+
+```
+
+- Mudamos para:
+
+```ts
+
+import { container } from 'tsyringe';
+// import AppointmentsRepository from '@modules/appointments/infra/typeorm/repositories/AppointmentsRepository';
+import CreateAppointmentService from '@modules/appointments/services/CreateAppointmentService';
+
+//..
+
+appointmentsRouter.post('/', async (req, res) => {
+// ...
+  // const appointmentsRepository = new AppointmentsRepository();
+  const createAppointment = container.resolve(CreateAppointmentService);
+
+// ...
+});
+
+```
+
+- Ok, como isso funciona?
+  1 - Ele irá carregar o service nesse caso o `CreateAppointmentService`
+  2 - Irá verificar dentro dele através do decoretor `@inject('...')` qual a dependência que ele precisa
+  3 - Com isso ele chega no `src/shared/container/index.ts` e verifica a dependencia cadastrada
+  4 - Gera a instancia da dependencia solicitada.
+
+
+---
+
+## Controllers
+
+- Utilizado para inserir toda a responsabilidade da rota
+
+- Criar o arquivo `src/modules/appointments/infra/http/controllers/AppointmentControllers.ts`
+
+- Eles são responsáveis por receber a requisição repassar para o serviço responsável e retornar a resposta, apenas isso.
+
+- Na arquitetura RestFul o controller devem ter no máximo 5 methodos:
+  - index
+  - show
+  - create
+  - update
+  - delete
