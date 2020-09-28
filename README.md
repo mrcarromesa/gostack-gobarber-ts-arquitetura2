@@ -291,3 +291,151 @@ appointmentsRouter.post('/', async (req, res) => {
   - create
   - update
   - delete
+
+
+---
+
+## Testes
+
+
+- Testes Unitários
+  - testam funcionalidades especificas da nossa aplicação
+  *Jamais: chamada a api e efeito coletaral*
+- Testes de integração
+  - testam uma funcionalidade completa, passando por várias camadas da aplicação
+  Route -> Controller -> Serviço -> Repositório -> ...
+
+- Teste E2E (Front-end)
+  - Teste que simulam a ação do usuário dentro da aplicação
+
+
+- TDD (Test Driven Development)
+
+---
+
+### Instalação configuração
+
+- Instalar o jest:
+
+```bash
+yarn add jest -D
+```
+
+- criar o arquivo de configuração do jest:
+
+```bash
+yarn jest --init
+```
+
+- Responder as perguntas:
+
+  - `Would you like to use Jest when running "test" script in "package.json"?` = Y
+  - `Choose the test environment that will be used for testing `  = node
+  - `Do you want Jest to add coverage reports?` = N // vamos habilitar depois
+  - `Automatically clear mock calls and instances between every test?` = N
+
+- Será criado um arquivo `jest.config.js`
+
+- Para o jest conseguir ler os arquivos de tests no formato typescript utilizamos a seguinte dependencia:
+
+```bash
+yarn add ts-jest -D
+```
+
+- E no arquivo `jest.config.js` adcionamos o seguinte:
+
+```js
+preset: 'ts-jest',
+```
+
+- Definir onde encontrar os arquivos de testes no `jest.config.js`:
+
+```js
+testMatch: [
+  "**/*.spec.ts",
+],
+```
+
+- Precisamos instalar a dependencia:
+
+```bash
+yarn add @types/jest -D
+```
+
+- Assim nosso projeto conseguirá entender as tipagens e variaveis globais do jest
+
+- No `eslintrc.json` adicionamos:
+
+
+```json
+"env": {
+      "es2020": true,
+      "node": true,
+      "jest": true,
+  },
+```
+
+- Para os testes entender a sintaxe de `@`, que adicionamos para facilitar os imports precisamos realizar alguns ajustes em `jest.config.js`:
+
+```js
+const { pathsToModuleNameMapper } = require('ts-jest/utils');
+const { compilerOptions } = require('./tsconfig.json');
+
+// ...
+
+moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, { prefix: '<rootDir>/src/'}),
+// ...
+```
+
+*No arquivo `tsconfig.json` precisamos retirar todos os comentários.*
+**Também verificar se não há nenhuma virgula no final de cada object, array, pois isso não será considerado um JSON válido.**
+
+- Agora com tudo pronto podemos escrever o primeiro test, em `src/modules/appointments/services/CreateAppointmentService.spec.ts`
+
+- Para executar os testes executamos o comando:
+
+```bash
+yarn test
+```
+
+- Antes de realizar os testes temos que pensar como vamos realizar testes que precisam utilizar base dados...
+Nesse caso o ideal é que nos testes unitários não seja utilizado nenhuma ação na base de dados, por vários fatores,
+Pois quando formos utilizar CI, vamos ter que criar uma base de dados isolada? vamos ter que apagar todos os registros e criar tudo novamente?
+O ambiente estará preparado?
+Então são uma série de coisas que devem ser pensadas então nesse caso o melhor é criamos fake o acesso e gravação aos dados aos registros.
+
+
+- Como fazer? Exemplo.: Criar o arquivo `src/modules/appointments/repositories/fakes/FakeAppointmentsRepository.ts`, e copiar para dentro dele tudo que está em `src/modules/appointments/infra/typeorm/repositories/AppointmentsRepository.ts` e remover tudo que está relacionado ao typeorm
+
+---
+
+### Collect Coverage
+
+- No arquivo `jest.config.js` ajustamos o seguinte:
+
+```js
+collectCoverage: true,
+
+collectCoverageFrom: ['<rootDir>/src/modules/**/services/*.ts'],
+
+coverageDirectory: 'coverage',
+
+coverageReporters: [
+  "text-summary",
+  "lcov",
+],
+```
+
+
+---
+
+## Testes - Verificando se uma promise retorna erro:
+
+- Um exemplo está presente em `src/modules/appointments/services/CreateAppointmentService.spec.ts`;
+
+```ts
+expect(createAppointment.execute({
+  date: appointmentDate,
+  provider_id: '123123',
+})).rejects.toBeInstanceOf(AppError);
+```
