@@ -1,8 +1,8 @@
-import { hash } from 'bcryptjs';
 import { injectable, inject } from 'tsyringe';
 import AppError from '@shared/errors/AppError';
 import User from '../infra/typeorm/entities/User';
 import IUsersRepository from '../repositories/IUsersRepository';
+import IHashProvider from '../providers/HashProvider/models/IHashProvider';
 
 interface IRequest {
   name: string;
@@ -15,7 +15,11 @@ class CreateUserService {
 
   constructor(
     @inject('UsersRepository')
-    private userRepository: IUsersRepository) {}
+    private userRepository: IUsersRepository,
+
+    @inject('HashProvider')
+    private hashProvider: IHashProvider,
+    ) {}
 
   async execute({ name, email, password }: IRequest): Promise<User> {
     const checkUserExists = await this.userRepository.findByEmail(email);
@@ -24,7 +28,7 @@ class CreateUserService {
       throw new AppError('Email address alredy used');
     }
 
-    const hashPassword = await hash(password, 8);
+    const hashPassword = await this.hashProvider.generateHash(password);
 
     const user = await this.userRepository.create({
       name,
@@ -32,7 +36,7 @@ class CreateUserService {
       password: hashPassword,
     });
 
-    delete user.password;
+    // delete user.password;
 
     return user;
   }

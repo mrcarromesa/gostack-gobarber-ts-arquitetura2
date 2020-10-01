@@ -439,3 +439,16 @@ expect(createAppointment.execute({
   provider_id: '123123',
 })).rejects.toBeInstanceOf(AppError);
 ```
+
+
+- Um recurso interessante sobre os testes é o `spyOn`, o qual pode ser encontrado em `src/users/services/UpdateUserAvatarService.spec.ts`:
+
+```ts
+const deleteFile = jest.spyOn(fakeStorageProvider, 'deleteFile');
+//...
+expect(deleteFile).toHaveBeenCalledWith('avatar.jpg');
+
+expect(user.avatar).toEqual('avatar2.jpg');
+```
+
+- Ele é utilizado para espiar a função de dentro de alguma class, ou const ou function parent.
