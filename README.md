@@ -170,6 +170,7 @@ yarn add tsconfig-paths -D
 - Essa é uma técnica muito utilizada que consiste criar inteface para transferir o objeto entre classes.
 - Um exemplo disso pode ser visto em `src/modules/appointments/dtos/ICreateAppointmentDTO.ts` e `src/modules/appointments/typeorm/repositories/AppointmentsRepository.ts`
 
+- Sempre que precisamos passar um objecto como parametro para um serviço utilizamos o DTO
 
 ---
 
@@ -452,3 +453,99 @@ expect(user.avatar).toEqual('avatar2.jpg');
 ```
 
 - Ele é utilizado para espiar a função de dentro de alguma class, ou const ou function parent.
+
+
+---
+
+## TDD
+
+- No TDD seguimos os seguintes passos:
+
+  - RED - Criar o teste primeiro e ele irá falhar
+  - GREEN - Fazer o teste passar
+  - REFACTOR - Refatorar o teste
+
+
+---
+
+## spyOn
+
+- podemos realizar mock de funções nativas do js utilizando o spyOn, um exemplo está em `src/modules/users/services/ResetPasswordService.ts`:
+
+```ts
+
+jest.spyOn(Date, 'now').mockImplementation(() => {
+  const customDate = new Date();
+  return customDate.setHours(customDate.getHours() + 3);
+});
+```
+
+---
+
+## Envio de e-mail
+
+- Podemos utilizar o [ethereal](https://ethereal.email/) para realizar o envio de e-mail em ambiente dev
+
+- Precisamos instalar o nodemailer:
+
+```bash
+yarn add nodemailer
+```
+
+- Também instalar a lib de tipagens do nodemailer:
+
+```bash
+yarn add @types/nodemailer -D
+```
+
+---
+
+## Template de e-mail
+
+- Para esse projeto iremos utilizar o handlebars:
+
+```bash
+yarn add handlebars
+```
+
+---
+
+### Definir um tipo array de um object:
+
+- Uma das melhores formas de definirmos um objeto como array no typescript é conforme esse exemplo que está dentro de `src/modules/appointments/services/ListProviderMonthAvailabilityService.ts`:
+
+```ts
+type IResponse = Array<{
+  day: number;
+  available: boolean;
+}>;
+```
+
+- Utilizar o Array<> ao invés do [] pois o primeiro fica mais legível.
+
+---
+
+### Expect Array Containing
+
+- Verificamos se há ocorrencias em parte do array, um exemplo está em `src/modules/appointments/services/ListProviderMonthAvailabilityService.spec.ts`:
+
+```ts
+expect(availability).toEqual(
+      expect.arrayContaining([
+        { day: 19, available: true },
+        { day: 20, available: false },
+        { day: 21, available: true },
+        { day: 22, available: true },
+      ]),
+    );
+```
+
+---
+
+### Limpar cache do jest
+
+- Quando corrigimos algum erro e mesmo assim o jest continua acusando um erro que já foi corrigido, podemos utilizar o seguinte comando:
+
+```bash
+yarn jest --clearCache
+```

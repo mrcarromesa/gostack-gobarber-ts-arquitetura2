@@ -10,16 +10,15 @@ interface IRequest {
   password: string;
 }
 
-injectable()
+@injectable()
 class CreateUserService {
-
   constructor(
     @inject('UsersRepository')
     private userRepository: IUsersRepository,
 
     @inject('HashProvider')
     private hashProvider: IHashProvider,
-    ) {}
+  ) {}
 
   async execute({ name, email, password }: IRequest): Promise<User> {
     const checkUserExists = await this.userRepository.findByEmail(email);
