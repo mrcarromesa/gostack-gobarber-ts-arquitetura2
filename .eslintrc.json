@@ -24,6 +24,7 @@
     "class-methods-use-this": "off",
     "no-useless-constructor": "off",
     "camelcase": "off",
+    "import/no-extraneous-dependencies": "off",
     "@typescript-eslint/no-unused-vars" : ["error",{ "argsIgnorePattern": "_"}],
     "@typescript-eslint/camelcase": "off",
      "import/extensions": [
