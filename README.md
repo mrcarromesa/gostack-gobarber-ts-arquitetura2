@@ -416,3 +416,66 @@ yarn add redis
 ```bash
 yarn add @types/redis -D
 ```
+
+
+---
+
+## Carregando relacionamentos typeorm
+
+- Temos um relacionamento em `src/modules/appointments/infra/typeorm/entities/Appointment.ts`:
+
+```ts
+  @ManyToMany(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+```
+
+- para que nas nossas consultas de appointment venha os dados do usuário podemos utilizar estratégia de `Eager loading` ou `Lazy Loading`.
+- O `Eager Loading`:
+
+```ts
+  @ManyToMany(() => User, { eager: true })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+```
+
+- Busca e retorna junto com a consulta, nesse caso de appointments os usuários relacionados.
+
+- O `Lazy Loading`:
+
+```ts
+  @ManyToMany(() => User, { lazy: true })
+  @JoinColumn({ name: 'user_id' })
+  user: User;
+```
+
+- Busca junto a consulta os usuários relacionados e permite trazer esses dados via await promise
+
+- Porém essas nem sempre são uma boa estratégia, para nosso caso vamos fazer isso diretamente no repositorio: `src/modules/appointments/infra/typeorm/repositories/AppointmentsRepository.ts`:
+
+```ts
+ public async findAllInDayFromProvider({
+    provider_id,
+    day,
+    month,
+    year,
+  }: IFindAllInDayFromProviderDTO): Promise<Appointment[]> {
+    const parsedDay = String(day).padStart(2, '0');
+    const parsedMonth = String(month).padStart(2, '0');
+    const appointments = await this.ormRepository.find({
+      where: {
+        provider_id,
+        date: Raw(
+          dateFieldName =>
+            `to_char(${dateFieldName}, 'DD-MM-YYYY') = '${parsedDay}-${parsedMonth}-${year}'`,
+        ),
+      },
+      relations: ['user'], // <- Here
+    });
+
+    return appointments;
+  }
+
+```
+
+- Adicionamos o `relations: ['user']`, o qual nesse caso irá fazer o que o eager loading faria.
